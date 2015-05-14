@@ -1,5 +1,5 @@
 # Elasticsearch Security Plugin for Token/JDBC based authentication
-This plugin is based on the implementation of <a href="mailto:hendrikdev22@gmail.com">E-Mail hendrikdev22@gmail.com</a><p>, who has done a great job of connecting elasticsearch to Kerberos/SPNEGO for authentication. I wanted to integrate the implementation into my Web Application based authentication, which relies on a standard user/group/role implementation for authentication.
+This plugin is based on the implementation of https://github.com/salyh (https://github.com/salyh/elasticsearch-security-plugin), who has done a great job of connecting elasticsearch to Kerberos/SPNEGO for authentication. I wanted to integrate the implementation into my Web Application based authentication, which relies on a standard user/group/role implementation for authentication.
 
 ## Difference to Hendriks version
 ### Removals

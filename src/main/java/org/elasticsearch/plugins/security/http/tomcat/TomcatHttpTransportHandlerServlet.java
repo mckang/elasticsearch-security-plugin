@@ -11,6 +11,12 @@ import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.http.HttpServerAdapter;
 
+/**
+ * 
+ * @author Hendrik Saly
+ * @author Johannes Hiemer
+ *
+ */
 public class TomcatHttpTransportHandlerServlet extends HttpServlet {
 
 	/**
@@ -38,10 +44,8 @@ public class TomcatHttpTransportHandlerServlet extends HttpServlet {
 				restRequest, resp, transport.getSecurityService());
 
 		try {
-
 			adapter.dispatchRequest(restRequest, restChannel);
 			restChannel.await();
-
 		} catch (final InterruptedException e) {
 			throw new ServletException("failed to dispatch request", e);
 		} catch (final Exception e) {
@@ -59,8 +63,6 @@ public class TomcatHttpTransportHandlerServlet extends HttpServlet {
 
 	public void setTransport(final TomcatHttpServerTransport transport) {
 		this.transport = transport;
-		// this.logger = Loggers.getLogger(buildClassLoggerName(getClass()),
-		// transport.settings());
 	}
 
 }

@@ -9,6 +9,11 @@ import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.plugins.AbstractPlugin;
 import org.elasticsearch.plugins.security.service.SecurityService;
 
+/**
+ * 
+ * @author Hendrik Saly
+ *
+ */
 public class SecurityPlugin extends AbstractPlugin {
 
 	private final ESLogger log = Loggers.getLogger(this.getClass());

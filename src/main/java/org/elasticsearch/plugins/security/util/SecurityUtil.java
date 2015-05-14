@@ -12,22 +12,25 @@ import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentFactory;
-import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.rest.BytesRestResponse;
 import org.elasticsearch.rest.RestChannel;
 import org.elasticsearch.rest.RestRequest;
 import org.elasticsearch.rest.RestRequest.Method;
-import org.elasticsearch.rest.RestResponse;
 import org.elasticsearch.rest.RestStatus;
 
+/**
+ * 
+ * @author Hendrik Saly
+ * @author Johannes Hiemer
+ *
+ */
 public class SecurityUtil {
 
 	private static final ESLogger log = Loggers.getLogger(SecurityUtil.class);
 
 	private SecurityUtil() {
-
+		super();
 	}
 
 	public static File getAbsoluteFilePathFromClassPath(
@@ -57,7 +60,6 @@ public class SecurityUtil {
 		}
 
 		return null;
-
 	}
 
 	public static boolean setSystemPropertyToAbsoluteFilePathFromClassPath(
@@ -138,55 +140,22 @@ public class SecurityUtil {
 		log.debug("Evaluate decoded path for indices'" + path + "'");
 
 		if (!path.startsWith("/")) {
-
 			return null;
 		}
-
+		
 		if (path.length() > 1) {
-
 			int endIndex;
 
-			
-			
-			
-			/*			if ((endIndex = path.indexOf('/', 1)) != -1) {
-			indices = Strings.splitStringByCommaToArray(path.substring(1,
-					endIndex));
-
-		}
-*/			
-		/**
-		* (contributed by Ram Kotamaraja)
-		*The above commented code handles code if there is a '/' at the end of the elastic search indices. Code is modified to handle indices where there is no '/' after it.
-		*Code below also handles the root level queries like '/_mapping', '/_settings' etc.			
-		*/
-
-		//Code modification START - Ram Kotamaraja
-		if ((path.indexOf('/', 1)) != -1) {
-			endIndex = path.indexOf('/', 1);
-		}else{
-			endIndex = path.length();
-		}
-
-		//check if the index start with /_. If it is not staring, then parse path, if not do nothing to return empty object			
-		if (!path.trim().startsWith("/_")) {
-			indices = Strings.splitStringByCommaToArray(path.substring(1,endIndex));
-		}
-		
-		//Code modification END - Ram Kotamaraja
-			
-			
-			
-			
+			if ((endIndex = path.indexOf('/', 1)) != -1) {
+				indices = Strings.splitStringByCommaToArray(path.substring(1, endIndex));
+			}
 		}
 
 		log.debug("Indices: " + Arrays.toString(indices));
 		return Arrays.asList(indices);
-
 	}
 
 	public static String getId(final RestRequest request) {
-
 		String id = null;
 		final String path = request.path();
 
@@ -223,35 +192,26 @@ public class SecurityUtil {
 		String[] types = new String[0];
 		final String path = request.path();
 
-		// TODO all types, length=0 or _all ??
-		// TODO aliases indices get expanded before or after rest layer?
 		log.debug("Evaluate decoded path for types '" + path + "'");
-
 		if (!path.startsWith("/")) {
-
 			return null;
 		}
 
 		if (path.length() > 1) {
-
 			int endIndex;
 
 			if ((endIndex = path.indexOf('/', 1)) != -1) {
-
 				int endType;
 
 				if ((endType = path.indexOf('/', endIndex + 1)) != -1) {
-
 					types = Strings.splitStringByCommaToArray(path.substring(
 							endIndex + 1, endType));
 				}
-
 			}
 		}
 
 		log.debug("Types: " + Arrays.toString(types));
 		return Arrays.asList(types);
-
 	}
 
 	public static void send(final RestRequest request,

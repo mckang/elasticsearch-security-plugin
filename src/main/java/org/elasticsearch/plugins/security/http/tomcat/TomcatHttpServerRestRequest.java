@@ -17,13 +17,15 @@ import org.elasticsearch.common.io.Streams;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.http.HttpRequest;
-
 import org.elasticsearch.rest.support.RestUtils;
 
-import waffle.servlet.WindowsPrincipal;
-
-public class TomcatHttpServerRestRequest extends 
-HttpRequest {
+/**
+ * 
+ * @author Hendrik Saly
+ * @author Johannes Hiemer
+ *
+ */
+public class TomcatHttpServerRestRequest extends HttpRequest {
 
 	protected static final ESLogger log = Loggers
 			.getLogger(TomcatHttpServerRestRequest.class);
@@ -50,7 +52,6 @@ HttpRequest {
 		log.debug("HttpServletRequest impl class: " + request.getClass());
 		log.debug("HttpServletRequest ru: " + request.getRemoteUser());
 		log.debug("HttpServletRequest up: " + request.getUserPrincipal());
-		//log.debug("HttpServletRequest up: " + request.getUserPrincipal().getClass().toString());
 
 		if (request.getQueryString() != null) {
 			RestUtils.decodeQueryString(request.getQueryString(), 0,
@@ -69,17 +70,7 @@ HttpRequest {
 
 	@Override
 	public String uri() {
-
 		return request.getRequestURI();
-
-		/*
-		 * int prefixLength = 0; if (request.getContextPath() != null ) {
-		 * prefixLength += request.getContextPath().length(); } if
-		 * (request.getServletPath() != null ) { prefixLength +=
-		 * request.getServletPath().length(); } if (prefixLength > 0) { return
-		 * request.getRequestURI().substring(prefixLength); } else { return
-		 * request.getRequestURI(); }
-		 */
 	}
 
 	@Override
@@ -165,21 +156,17 @@ HttpRequest {
 
 	public HttpServletRequest getHttpServletRequest() {
 		return request;
-
 	}
 
 	public Principal getUserPrincipal() {
 		return request.getUserPrincipal();
-
 	}
 
 	public boolean isUserInRole(final String role) {
 		return request.isUserInRole(role);
-
 	}
 
 	public List<String> getUserRoles() {
-
 		if (request.getUserPrincipal() instanceof GenericPrincipal) {
 			final GenericPrincipal wp = (GenericPrincipal) request
 					.getUserPrincipal();
@@ -191,48 +178,20 @@ HttpRequest {
 			}
 		}
 
-
-		if (request.getUserPrincipal() instanceof WindowsPrincipal) {
-			final WindowsPrincipal wp = (WindowsPrincipal) request
-					.getUserPrincipal();
-
-			log.debug("WindowsPrincipal roles: " + wp.getRolesString());
-			log.debug("WindowsPrincipal groups: " + wp.getGroups());
-
-			if (wp.getRolesString() != null) {
-				return Arrays.asList(wp.getRolesString().split(","));
-			}
-		}
-
-		/*if (this.request.getUserPrincipal() instanceof ActiveDirectoryPrincipal) {
-			final ActiveDirectoryPrincipal ap = (ActiveDirectoryPrincipal) this.request
-					.getUserPrincipal();
-
-			log.debug("ActiveDirectoryPrincipal roles: " + ap.getRoles());
-
-			return ap.getRoles();
-		}*/
-
 		return null;
-
 	}
 
 	@Override
 	public Iterable<Entry<String, String>> headers() {
-		
 		Map<String, String> headerMap = new HashMap<String, String>(); 
 		
-		 while(request.getHeaderNames().hasMoreElements())
-		 {
+		 while(request.getHeaderNames().hasMoreElements()) {
 			 String headerName = request.getHeaderNames().nextElement();
 			 headerMap.put(headerName, request.getHeader(headerName));
 		 }
 		 
 		 return headerMap.entrySet();
 	}
-
-
-	//next three methods contributed by Ram Kotamaraja
 	
 	/**
 	 * Setter Method for content
@@ -258,6 +217,5 @@ HttpRequest {
 	 public void setAttribute(String requestContentAttribute,
 			BytesReference content) {
 	 		this.request.setAttribute(requestContentAttribute, content);
-	 		
 	 }
 }

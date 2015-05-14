@@ -7,7 +7,11 @@ import java.util.Map.Entry;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.rest.RestRequest;
 
-
+/**
+ * 
+ * @author Hendrik Saly
+ *
+ */
 public class EditableRestRequest extends RestRequest {
 
 	private RestRequest innerRestquest = null;
@@ -20,7 +24,6 @@ public class EditableRestRequest extends RestRequest {
 	private boolean contentUnsafe;
 
 	public EditableRestRequest(final RestRequest innerRestquest) {
-
 		this.innerRestquest = innerRestquest;
 		content = innerRestquest.content();
 		params = innerRestquest.params();
@@ -29,7 +32,6 @@ public class EditableRestRequest extends RestRequest {
 		rawPath = innerRestquest.rawPath();
 		hasContent = innerRestquest.hasContent();
 		contentUnsafe = innerRestquest.contentUnsafe();
-
 	}
 	
 	public void addParam(String key, String value){
@@ -79,49 +81,41 @@ public class EditableRestRequest extends RestRequest {
 
 	@Override
 	public String rawPath() {
-
 		return rawPath;
 	}
 
 	@Override
 	public boolean hasContent() {
-
 		return hasContent;
 	}
 
 	@Override
 	public boolean contentUnsafe() {
-
 		return contentUnsafe;
 	}
 
 	@Override
 	public BytesReference content() {
-
 		return content;
 	}
 
 	@Override
 	public String header(final String name) {
-
 		return innerRestquest.header(name);
 	}
 
 	@Override
 	public boolean hasParam(final String key) {
-
 		return params.containsKey(key);
 	}
 
 	@Override
 	public String param(final String key) {
-
 		return params.get(key);
 	}
 
 	@Override
 	public Map<String, String> params() {
-
 		return params;
 	}
 

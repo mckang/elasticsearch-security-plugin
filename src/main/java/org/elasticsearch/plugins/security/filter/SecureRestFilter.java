@@ -16,6 +16,12 @@ import org.elasticsearch.rest.RestFilterChain;
 import org.elasticsearch.rest.RestRequest;
 import org.elasticsearch.rest.RestStatus;
 
+/**
+ * 
+ * @author Hendrik Saly
+ * @author Johannes Hiemer
+ *
+ */
 public abstract class SecureRestFilter extends RestFilter {
 
 	protected final ESLogger log = Loggers.getLogger(this.getClass());
@@ -40,7 +46,6 @@ public abstract class SecureRestFilter extends RestFilter {
 	public final void process(final RestRequest request,
 			final RestChannel channel, final RestFilterChain filterChain) {
 
-		// TODO check aliases, multiple indices, _all, ...
 		final List<String> indices = SecurityUtil.getIndices(request);
 		if (indices.contains(securityService
 				.getSecurityConfigurationIndex())) {

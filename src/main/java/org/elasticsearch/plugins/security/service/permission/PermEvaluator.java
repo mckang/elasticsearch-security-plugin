@@ -12,6 +12,12 @@ import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.plugins.security.MalformedConfigurationException;
 
+/**
+ * 
+ * @author Hendrik Saly
+ * @author Johannes Hiemer
+ *
+ */
 public abstract class PermEvaluator<T> {
 
 	protected static final ESLogger log = Loggers
@@ -28,8 +34,6 @@ public abstract class PermEvaluator<T> {
 		}
 
 		this.xSecurityConfiguration = xSecurityConfiguration;
-
-		// log.debug("Configuration: " + xSecurityConfiguration);
 	}
 
 	protected abstract T createFromString(String s);
@@ -42,13 +46,7 @@ public abstract class PermEvaluator<T> {
 			final InetAddress hostAddress, final UserRoleCallback callback)
 					throws MalformedConfigurationException {
 	    
-	    /*if(indices==null || types == null || hostAddress == null) {
-	        throw new MalformedConfigurationException("Indices, types and hostAddress must not be null");
-	    }*/
-
 		final List<Perm<T>> perms = new ArrayList<Perm<T>>();
-
-		//final List<WildcardString> matchList = new ArrayList<WildcardString>();
 
 		try {
 
@@ -66,21 +64,13 @@ public abstract class PermEvaluator<T> {
 					currentPerm = new Perm<T>();
 
 				} else if (token == XContentParser.Token.END_OBJECT) {
-
 					if (currentPerm != null && perms.contains(currentPerm)) {
 						log.error("Duplicate permissions " + currentPerm);
 						throw new MalformedConfigurationException(
 								"Duplicate permissions found");
 					}
 
-					/*if (currentPerm != null && !currentPerm.isValid()) {
-                        log.error("Perm not valid " + currentPerm);
-                        throw new MalformedConfigurationException(
-                                "Invalid permission found");
-                    }*/
-
 					if (currentPerm != null) {
-					    
 					    if(currentPerm.permLevel == null){
 					        currentPerm.permLevel = getDefaultPermLevelForEvaluator();
 					    }
@@ -116,24 +106,17 @@ public abstract class PermEvaluator<T> {
 				}
 
 			}
-
 		} catch (final Exception e) {
 			throw new MalformedConfigurationException(e);
 		} finally {
 			this.parser.close();
 		}
 		
-		
-		
-		
-		
-
 		log.debug("Checking " + perms.size() + " perms");
 
 		T permLevel = null;
 
 		for (final Perm<T> p : perms) {
-
 			if (p.isDefault()) {
 				permLevel = p.permLevel;
 				if (log.isDebugEnabled()) {
@@ -148,18 +131,10 @@ public abstract class PermEvaluator<T> {
 					"No default configuration found");
 		}
 
-		/*for (final Perm<T> p : perms) {
-
-			for (final String ip : p.inetAddresses) {
-				//matchList.add(new WildcardString(ip));
-			}
-		}*/
-
 		final String clientHostName = hostAddress.getHostName();
 		final String clientHostIp = hostAddress.getHostAddress();
 		
 		permloop: for (final Perm<T> p : perms) {
-
 			if (p.isDefault()) {
 				continue;
 			}
@@ -168,12 +143,8 @@ public abstract class PermEvaluator<T> {
 			String _host = null;
 
 			log.debug("Check perm " + p);
-
-			// TODO difference between not here and []
-			if (!p.users.isEmpty()
-					&& !p.users.contains("*")
-					&& (callback == null || callback.getRemoteuser() == null || !p.users
-					.contains(callback.getRemoteuser()))) {
+			if (!p.users.isEmpty() && !p.users.contains("*") && (callback == null || 
+					callback.getRemoteuser() == null || !p.users.contains(callback.getRemoteuser()))) {
 				if(callback != null) {
 			        log.debug("User " + callback.getRemoteuser()
 					+ " does not match, so skip this permission");
@@ -209,52 +180,39 @@ public abstract class PermEvaluator<T> {
 
 			if (!p.inetAddresses.contains("*") && !p.inetAddresses.isEmpty()) {
 				for (final String pinetAddress : p.inetAddresses) {
-					if (isWildcardMatch(pinetAddress, clientHostName)
-					|| isWildcardMatch(pinetAddress, clientHostIp)) {
-
+					if (isWildcardMatch(pinetAddress, clientHostName) || isWildcardMatch(pinetAddress, clientHostIp)) {
 						log.debug("Host adress " + pinetAddress + " match");
 						_host = pinetAddress;
 						break;
-
 					}
-
 				}
 
 				if (_host == null) {
-
-					log.debug("Host adress ("
-							+ clientHostIp
-							+ "(ip) and "
-							+ clientHostName
-							+ " (hostname) does not match, so skip this permission");
+					log.debug("Host adress (" + clientHostIp + "(ip) and "
+							+ clientHostName + " (hostname) does not match, so skip this permission");
 					continue permloop;
-
 				}
-
 			}
 
 			if (!p.types.isEmpty() && !p.types.contains("*")) {
-				
 				boolean typeMatch=false;
 				
 				typeloop:
 				for (final String pType : p.types) {
 					
-					for (final String tType : types)
-					{
+					for (final String tType : types) {
 						if (isWildcardMatch(tType, pType)) {
 							log.debug("Type "+pType+" match " + tType + "");
 							typeMatch=true;
 							break typeloop;
 
-						}else {
+						} else {
 							log.debug("Type "+pType+" not match " + tType + "");
 						}
-						
 					}
 				}
 				
-				if(!typeMatch){
+				if(!typeMatch) {
 					log.debug("No type matches, so skip this permission ["
 							+ p.types + " != " + types + "]");
 					continue permloop;
@@ -264,22 +222,19 @@ public abstract class PermEvaluator<T> {
 			log.debug("All types matches");
 
 			if ( !p.indices.isEmpty() && !p.indices.contains("*")) {
-
-				
 				boolean indexMatch=false;
 				
 				indexloop:
                 for (final String pIndex : p.indices) {
 					
                     if(indices != null) {
-                        for (final String tIndex : indices)
-                        {
+                        for (final String tIndex : indices) {
                             if (isWildcardMatch(tIndex, pIndex)) {
                                 log.debug("Index "+pIndex+" match " + tIndex + "");
                                 indexMatch=true;
                                 break indexloop;
 
-                            }else {
+                            } else {
                                 log.debug("Index "+pIndex+" not match " + tIndex + "");
                             }
                             
@@ -288,39 +243,26 @@ public abstract class PermEvaluator<T> {
 					
 				}
 
-				if(!indexMatch)
-				{
-					
+				if(!indexMatch) {
 					log.debug("No index matches, so skip this permission ["
 							+ p.indices + " != " + indices + "]");
 					continue permloop;
 				}
-				
-				
+			} else {
+				if((indices == null || indices.isEmpty()) && !p.indices.isEmpty() && !p.indices.contains("*") ) { 
+					log.debug("Not all indexes match because no index specified, so skip this permission ["
+							+ p.indices + " != " + indices + "]");
+					continue permloop;
+					
+				}
 			}
-			
-			
-			//START
-			//added condition to check if indices provided are empty to validate the matching of index. This is required to allow requesting metadata queries like /_mapping, /_setting etc.
-			//(contributed by Ram Kotamaraja)
-			else
-			if((indices == null || indices.isEmpty()) && !p.indices.isEmpty() && !p.indices.contains("*") ){ 
-
-				log.debug("Not all indexes match because no index specified, so skip this permission ["
-						+ p.indices + " != " + indices + "]");
-				continue permloop;
-				
-			}
-			//END
-
 			log.debug("All rules match, will apply " + p);
 			return p.permLevel;
 
-		}// end permloop
+		}
 
 		log.debug("No rules matched, will apply default perm " + permLevel);
 		return permLevel;
-
 	}
 
 	protected static class Perm<T> {
@@ -337,7 +279,6 @@ public abstract class PermEvaluator<T> {
 			return this.permLevel != null;
 		}
 
-		// default is either all props empty and/or "*"
 		public boolean isDefault() {
 
 			if (this.inetAddresses.isEmpty() && this.users.isEmpty()

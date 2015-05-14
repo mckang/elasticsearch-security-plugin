@@ -12,7 +12,6 @@ import static org.elasticsearch.common.network.NetworkService.TcpSettings.TCP_SE
 
 import java.io.File;
 import java.net.InetSocketAddress;
-import java.util.Map;
 
 import org.apache.catalina.Context;
 import org.apache.catalina.LifecycleException;
@@ -24,7 +23,6 @@ import org.apache.catalina.deploy.LoginConfig;
 import org.apache.catalina.deploy.SecurityCollection;
 import org.apache.catalina.deploy.SecurityConstraint;
 import org.apache.catalina.startup.Tomcat;
-
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.ClusterName;
@@ -43,12 +41,16 @@ import org.elasticsearch.http.HttpServerAdapter;
 import org.elasticsearch.http.HttpServerTransport;
 import org.elasticsearch.http.HttpStats;
 import org.elasticsearch.plugins.security.service.SecurityService;
-import org.elasticsearch.plugins.security.util.SecurityUtil;
 import org.elasticsearch.transport.BindTransportException;
 
-public class TomcatHttpServerTransport extends
-AbstractLifecycleComponent<HttpServerTransport> implements
-HttpServerTransport {
+/**
+ * 
+ * @author Hendrik Saly
+ * @author Johannes Hiemer
+ *
+ */
+public class TomcatHttpServerTransport extends AbstractLifecycleComponent<HttpServerTransport> implements 
+	HttpServerTransport {
 
 	private volatile ExtendedTomcat tomcat;
 
@@ -88,37 +90,17 @@ HttpServerTransport {
 
 	private final SecurityService securityService;
 
-	private final String kerberosMode;
+	private final String authenticationMode;
 
 	private final Boolean useSSL;
 
 	private final  Boolean useClientAuth;
 
 	static {
-
-		System.setProperty("org.apache.catalina.connector.RECYCLE_FACADES",
-				"true");
-		System.setProperty(
-				"org.apache.catalina.connector.CoyoteAdapter.ALLOW_BACKSLASH",
-				"false");
-		System.setProperty(
-				"org.apache.tomcat.util.buf.UDecoder.ALLOW_ENCODED_SLASH",
-				"false");
-		System.setProperty(
-				"org.apache.catalina.connector.Response.ENFORCE_ENCODING_IN_GET_WRITER",
-				"true");
-
-		/*
-		System.setProperty(
-				"com.sun.net.ssl.enableECC",
-				"false");
-
-		System.setProperty(
-				"jsse.enableSNIExtension",
-				"false");
-		 */
-
-
+		System.setProperty("org.apache.catalina.connector.RECYCLE_FACADES", "true");
+		System.setProperty("org.apache.catalina.connector.CoyoteAdapter.ALLOW_BACKSLASH", "false");
+		System.setProperty("org.apache.tomcat.util.buf.UDecoder.ALLOW_ENCODED_SLASH", "false");
+		System.setProperty("org.apache.catalina.connector.Response.ENFORCE_ENCODING_IN_GET_WRITER", "true");
 	}
 
 	@Inject
@@ -131,57 +113,14 @@ HttpServerTransport {
 		this.settings = settings;
 		this.securityService = securityService;
 
-		/*
-		 * TODO check if keep alive is managed by tomcat copy custom headers to
-		 * response check that user under tomcat/ea is running is not a
-		 * privilieged iuser tomcat props apply: tomcat.XXX
-		 */
-
-		// _aliases test with more than one index mapped to an alias
-
-		/*
-		 * 
-		 * http.max_initial_line_length not respected http.reset_cookies not
-		 * respected workerCount http.cors.enabled http.cors.allow-origin
-		 * http.cors.max-age http.cors.allow-methods http.cors.allow-headers
-		 * 
-		 * 
-		 * 
-		 * http://www.elasticsearch.org/guide/en/elasticsearch/reference/current/
-		 * modules-network.html
-		 * 
-		 * http://stackoverflow.com/questions/8038718/serializing-generic-java-
-		 * object-to-json-using-jackson
-		 * http://tomcatspnegoad.sourceforge.net/realms.html
-		 * 
-		 * SSL options
-		 * 
-		 * 
-		 * 
-		 * Realm options/login waffle, spnego ... security.kerberos.provider:
-		 * waffle
-		 * 
-		 * Hardening EA - dynamic script disable
-		 */
-
-		/*
-		 * 
-		 * 
-
-		 * 
-		 * 
-		 * 
-
-		 */
-
 		useSSL = componentSettings.getAsBoolean("ssl.enabled",
 				settings.getAsBoolean("security.ssl.enabled", false));
 
 		useClientAuth= componentSettings.getAsBoolean("ssl.clientauth.enabled",
 				settings.getAsBoolean("security.ssl.clientauth.enabled", false));
 
-		kerberosMode = componentSettings.get("kerberos.mode",
-				settings.get("security.kerberos.mode", "none"));
+		authenticationMode = componentSettings.get("authentication.mode",
+				settings.get("security.authentication.mode", "none"));
 
 		port = componentSettings.get("port",
 				settings.get("http.port", "8080"));
@@ -228,7 +167,6 @@ HttpServerTransport {
 		compression = settings.getAsBoolean("http.compression", false);
 		compressionLevel = settings.getAsInt("http.compression_level", 6);
 
-		// validate max content length
 		if (maxContentLength.bytes() > Integer.MAX_VALUE) {
 			logger.warn("maxContentLength[" + maxContentLength
 					+ "] set to high value, resetting it to [100mb]");
@@ -272,13 +210,11 @@ HttpServerTransport {
 	@Override
 	public void httpServerAdapter(final HttpServerAdapter httpServerAdapter) {
 		this.httpServerAdapter = httpServerAdapter;
-
 	}
 
 	@Override
 	protected void doStart() throws ElasticsearchException {
 		try {
-
 			final String currentDir = new File(".").getCanonicalPath();
 			final String tomcatDir = currentDir + File.separatorChar + "tomcat";
 
@@ -295,7 +231,7 @@ HttpServerTransport {
 
 			tomcat = new ExtendedTomcat();
 			tomcat.enableNaming();
-			tomcat.getServer().setPort(-1); // shutdown disabled
+			tomcat.getServer().setPort(-1);
 			tomcat.getServer().setAddress("localhost");
 
 			final String httpProtocolImpl = blockingServer ? "org.apache.coyote.http11.Http11Protocol"
@@ -304,8 +240,6 @@ HttpServerTransport {
 			final Connector httpConnector = new Connector(httpProtocolImpl);
 			tomcat.setConnector(httpConnector);
 			tomcat.getService().addConnector(httpConnector);
-
-			// TODO report tomcat bug with setProtocol
 
 			if (maxContentLength != null) {
 				httpConnector
@@ -355,9 +289,6 @@ HttpServerTransport {
 
 			httpConnector.setPort(Integer.parseInt(port));
 
-
-
-
 			tomcat.setBaseDir(tomcatDir);
 
 			final TomcatHttpTransportHandlerServlet servlet = new TomcatHttpTransportHandlerServlet();
@@ -371,13 +302,9 @@ HttpServerTransport {
 
 			ctx.addServletMapping("/*", "ES Servlet");
 
-
-
-			if(useSSL)
-			{
+			if(useSSL) {
 				logger.info("Using SSL");
 
-				//System.setProperty("javax.net.debug", "ssl");
 				httpConnector.setAttribute("SSLEnabled", "true");
 				httpConnector.setSecure(true);
 				httpConnector.setScheme("https");
@@ -397,9 +324,7 @@ HttpServerTransport {
 					httpConnector.setAttribute("keyAlias", keyalias);
 				}
 
-				if(useClientAuth)
-				{
-
+				if(useClientAuth) {
 
 					logger.info("Using SSL Client Auth (PKI), so user/roles will be retrieved from client certificate.");
 
@@ -411,19 +336,6 @@ HttpServerTransport {
 							"security.ssl.clientauth.truststorepass", "changeit"));
 					httpConnector.setAttribute("truststoreType", settings.get(
 							"security.ssl.clientauth.truststoretype", "JKS"));
-
-
-					/*final String loginconf = this.settings
-						.get("security.kerberos.login.conf.path");
-				final String krbconf = this.settings
-						.get("security.kerberos.krb5.conf.path");
-
-				SecurityUtil.setSystemPropertyToAbsoluteFile(
-						"java.security.auth.login.config", loginconf);
-				SecurityUtil.setSystemPropertyToAbsoluteFile(
-						"java.security.krb5.conf", krbconf);*/
-
-					//httpConnector.setAttribute("allowUnsafeLegacyRenegotiation", "true");
 
 					final SecurityConstraint constraint = new SecurityConstraint();
 					constraint.addAuthRole("*");
@@ -441,136 +353,70 @@ HttpServerTransport {
 					lc.setRealmName("clientcretificate");
 					ctx.setLoginConfig(lc);
 
-
-
-					configureJndiRealm(ctx);
-
 					ctx.getPipeline().addValve(new SSLAuthenticator());
 					logger.info("Auth Method is CLIENT-CERT");
 
-					//http://pki-tutorial.readthedocs.org/en/latest/simple/
-
 				}
-
-
-
-
-
-			}else
-			{
-				if(useClientAuth)
-				{
+			} else {
+				if(useClientAuth) {
 					logger.error("Client Auth only available with SSL");
 					throw new RuntimeException("Client Auth only available with SSL");
 				}
-
-				//useClientAuth = false;
 			}
 
 
-			if(!useClientAuth)
-			{
-				if ("waffle".equalsIgnoreCase(kerberosMode)) {
+			if(!useClientAuth) {
+				if ("waffle".equalsIgnoreCase(authenticationMode)) {
 
-					final Boolean testMode = settings.getAsBoolean(
-							"security.waffle.testmode", false);
+				} else if ("spnegoad".equalsIgnoreCase(authenticationMode)) {
+					
+				} else if ("none".equalsIgnoreCase(authenticationMode)) {
 
-					final FilterDef fd = new FilterDef();
-					fd.setFilterClass("waffle.servlet.NegotiateSecurityFilter");
-					fd.setFilterName("Waffle");
+					logger.warn("Kerberos is not configured so user/roles are unavailable. "
+							+ "Host based security, in contrast, is woking. ");
 
-					if (testMode != null && testMode.booleanValue()) {
+				} else if ("jdbc".equalsIgnoreCase(authenticationMode)) {
 
-						fd.addInitParameter("principalFormat", "fqn");
-						fd.addInitParameter("roleFormat", "both");
-						fd.addInitParameter("allowGuestLogin", "true");
-						fd.addInitParameter("securityFilterProviders",
-								"org.elasticsearch.plugins.security.waffle.TestProvider");
-
-						logger
-						.info("Kerberos implementaton is WAFFLE in testmode (only work on Windows Operations system)");
-					} else {
-						final Map<String, String> waffleSettings = settings
-								.getByPrefix("security.waffle").getAsMap();
-
-						for (final String waffleKey : waffleSettings.keySet()) {
-
-							fd.addInitParameter(waffleKey.substring(1),
-									waffleSettings.get(waffleKey));
-
-							logger.debug(waffleKey.substring(1) + "="
-									+ waffleSettings.get(waffleKey));
-
-						}
-
-						fd.addInitParameter("principalFormat", "fqn");
-						fd.addInitParameter("roleFormat", "both");
-						fd.addInitParameter("allowGuestLogin", "false");
-
-						logger
-						.info("Kerberos implementaton is WAFFLE (only work on Windows Operations system)");
-					}
-
-					ctx.addFilterDef(fd);
-					final FilterMap fm = new FilterMap();
-					fm.setFilterName("Waffle");
-					fm.addURLPattern("/*");
-					ctx.addFilterMap(fm);
-
-				} else if ("spnegoad".equalsIgnoreCase(kerberosMode)) {
-
-					//System.setProperty("sun.security.krb5.debug", "true"); // TODO
-					// switch
-					// off
-
-					System.setProperty("javax.security.auth.useSubjectCredsOnly", "false");
-
-					final SecurityConstraint constraint = new SecurityConstraint();
-					constraint.addAuthRole("*");
-					constraint.setAuthConstraint(true);
-					constraint.setDisplayName("spnego_sc_all");
-					final SecurityCollection col = new SecurityCollection();
-					col.addPattern("/*");
-
-					constraint.addCollection(col);
-					ctx.addConstraint(constraint);
-
-					final LoginConfig lc = new LoginConfig();
-					lc.setAuthMethod("SPNEGO");
-					lc.setRealmName("SPNEGO");
-					ctx.setLoginConfig(lc);
-
-					logger
-					.info("Kerberos implementaton is SPNEGOAD");
-
-					configureJndiRealm(ctx);
-
-					final ExtendedSpnegoAuthenticator spnegoValve = new ExtendedSpnegoAuthenticator();
-					//spnegoValve.setLoginConfigName("es-login");
-					spnegoValve.setStoreDelegatedCredential(true);
-					ctx.getPipeline().addValve(spnegoValve);
-
-					//final SpnegoAuthenticator spnegoValve = new SpnegoAuthenticator();
-					//spnegoValve.setLoginEntryName("es-login");
-					//ctx.getPipeline().addValve(spnegoValve);
-
-
-
-				} else if ("none".equalsIgnoreCase(kerberosMode)) {
-
-					logger
-					.warn("Kerberos is not configured so user/roles are unavailable. Host based security, in contrast, is woking. ");
+					final FilterDef filterDef = new FilterDef();
+					filterDef.setFilterClass("org.elasticsearch.plugins.security.filter.authentication.TokenFilter");
+					filterDef.setFilterName("TokenFilter");
+					
+					String url = settings.get("security.jdbc.url");
+					String driver = settings.get("security.jdbc.driver");
+	            	String host = settings.get("security.jdbc.host");
+	            	String port = settings.get("security.jdbc.port");
+	            	String username = settings.get("security.jdbc.username");
+	            	String password = settings.get("security.jdbc.password");
+	            	String database = settings.get("security.jdbc.database");
+	            	String table = settings.get("security.jdbc.table");
+	            	String usernameColumn = settings.get("security.jdbc.column.username");
+	            	String passwordColumn = settings.get("security.jdbc.column.password");
+	            	
+	            	filterDef.addInitParameter("security.jdbc.url", url);
+	            	filterDef.addInitParameter("security.jdbc.driver", driver);
+	            	filterDef.addInitParameter("security.jdbc.host", host);
+	            	filterDef.addInitParameter("security.jdbc.port", port);
+	            	filterDef.addInitParameter("security.jdbc.username", username);
+	            	filterDef.addInitParameter("security.jdbc.password", password);
+	            	filterDef.addInitParameter("security.jdbc.database", database);
+	            	filterDef.addInitParameter("security.jdbc.table", table);
+	            	filterDef.addInitParameter("security.jdbc.column.username", usernameColumn);
+	            	filterDef.addInitParameter("security.jdbc.column.password", passwordColumn);
+					
+					ctx.addFilterDef(filterDef);
+					final FilterMap filterMap = new FilterMap();
+					filterMap.setFilterName("TokenFilter");
+					filterMap.addURLPattern("/*");
+					ctx.addFilterMap(filterMap);
 
 				} else {
 					logger
-					.error("No Kerberos implementaion '"
-							+ kerberosMode
-							+ "' found. Kerberos is therefore not configured so user/roles are unavailable. Host based security, in contrast, is woking. ");
+					.error("No Kerberos implementaion '" + authenticationMode + "' found. Kerberos is therefore not configured "
+							+ "so user/roles are unavailable. Host based security, in contrast, is working.");
 				}
 			}
 
 			tomcat.start();
-
 			logger.info("Tomcat started");
 
 			InetSocketAddress bindAddress;
@@ -610,12 +456,10 @@ HttpServerTransport {
 
 	@Override
 	protected void doStop() throws ElasticsearchException {
-
 		try {
 			if (tomcat != null) {
 				tomcat.stop();
 			}
-
 		} catch (final Exception e) {
 			throw new ElasticsearchException("Unable to stop Tomcat", e);
 		}
@@ -634,176 +478,6 @@ HttpServerTransport {
 		} catch (final LifecycleException e) {
 			throw new ElasticsearchException("Unable to destroy Tomcat", e);
 		}
-
 	}
-
-
-	protected void configureJndiRealm(Context ctx)
-	{
-
-		final String[] ldapurls = settings
-				.get("security.authorization.ldap.ldapurls").split(",");
-
-		final String sslroleattribute = settings
-				.get("security.ssl.userattribute");
-
-		//final Boolean isLdapAD = this.settings.getAsBoolean(
-		//	"security.authorization.ldap.isactivedirectory", true);
-
-		final String loginconf = settings
-				.get("security.kerberos.login.conf.path");
-		final String krbconf = settings
-				.get("security.kerberos.krb5.conf.path");
-
-		SecurityUtil.setSystemPropertyToAbsoluteFile(
-				"java.security.auth.login.config", loginconf);
-		SecurityUtil.setSystemPropertyToAbsoluteFile(
-				"java.security.krb5.conf", krbconf);
-
-		//final ExtendedJndiRealm realm = new ExtendedJndiRealm();
-
-		final ExtendedJndiRealm realm = new ExtendedJndiRealm (sslroleattribute);
-		//realm.setConnectionName("uid=admin,ou=system");
-		//realm.setConnectionPassword("secret");
-
-		realm.setConnectionURL(ldapurls[0].trim());
-		
-		if(ldapurls.length > 1) {
-		    realm.setAlternateURL(ldapurls[1].trim());
-		}
-
-		realm.setAuthentication("simple");
-		realm.setUseDelegatedCredential(false);
-
-		realm.setUserSubtree(true);
-		realm.setRoleSubtree(true);
-
-		realm.setReferrals("follow");
-		realm.setUserSearch("(sAMAccountName={0})");
-		realm.setRoleSearch("(member={0})");
-		realm.setRoleName("cn");
-
-
-
-
-		/*realm.setUserSearch("uid={0}");
-		realm.setRoleSearch("(member={0})");
-		realm.setRoleName("cn");
-		realm.setUserBase("ou=users,dc=example,dc=com");
-		realm.setRoleBase("ou=groups,dc=example,dc=com");
-		 */
-
-		realm.setConnectionName(settings.get(
-				"security.authorization.ldap.connectionname",
-				realm.getConnectionName()));
-
-		realm.setConnectionPassword(settings.get(
-				"security.authorization.ldap.connectionpassword",
-				realm.getConnectionPassword()));
-
-		realm.setUserBase(settings.get(
-				"security.authorization.ldap.userbase",
-				realm.getUserBase()));
-		realm.setUserSearch(settings.get(
-				"security.authorization.ldap.usersearch",
-				realm.getUserSearch()));
-		realm.setRoleBase(settings.get(
-				"security.authorization.ldap.rolebase",
-				realm.getRoleBase()));
-		realm.setRoleSearch(settings.get(
-				"security.authorization.ldap.rolesearch",
-				realm.getRoleSearch()));
-		realm.setRoleName(settings.get(
-				"security.authorization.ldap.rolename",
-				realm.getRoleName()));
-
-
-
-
-
-
-		//realm.setAuthentication("EXTERNAL");
-		//realm.setProtocol("ssl");
-
-		//http://docs.oracle.com/javase/tutorial/jndi/ldap/ssl.html#EXTERNAL
-		//https://issues.apache.org/bugzilla/show_bug.cgi?id=55778
-		//http://docs.oracle.com/javase/jndi/tutorial/ldap/security/sasl.html
-
-
-		ctx.setRealm(realm );
-		//ctx.setRealm(new AllPermsRealm());
-
-	}
-
-
-
-	/*
-	 * protected void configureLdapRealm(Context ctx)
-	{
-
-		final String ldapurls = this.settings
-				.get("security.authorization.ldap.ldapurls");
-
-		final Boolean isLdapAD = this.settings.getAsBoolean(
-				"security.authorization.ldap.isactivedirectory", true);
-
-		final String loginconf = this.settings
-				.get("security.kerberos.login.conf.path");
-		final String krbconf = this.settings
-				.get("security.kerberos.krb5.conf.path");
-
-		SecurityUtil.setSystemPropertyToAbsoluteFile(
-				"java.security.auth.login.config", loginconf);
-		SecurityUtil.setSystemPropertyToAbsoluteFile(
-				"java.security.krb5.conf", krbconf);
-
-		final ContextResource resource = new ContextResource();
-		resource.setType("net.sf.michaelo.dirctxsrc.DirContextSource");
-		resource.setName("active-directory");
-		resource.setProperty("factory",
-				"net.sf.michaelo.dirctxsrc.DirContextSourceFactory");
-		resource.setProperty("auth", "gssapi");
-		resource.setProperty("urls", ldapurls);
-		resource.setProperty("loginEntryName", "es-ldap-server");
-		ctx.getNamingResources().addResource(resource);
-
-		if (isLdapAD != null && isLdapAD.booleanValue()) {
-
-			this.logger
-					.info("LDAP server is Active Directory");
-
-			final FixedActiveDirectoryRealm realm = new FixedActiveDirectoryRealm();
-			realm.setResourceName("active-directory");
-			realm.setLocalResource(true);
-			ctx.setRealm(realm);
-
-		} else {
-
-			this.logger
-					.info("LDAP server is NOT Active Directory");
-			final UniversalLdapRealm realm = new UniversalLdapRealm();
-
-			realm.setUserSearchBase(this.settings.get(
-					"security.authorization.ldap.usersearchbase",
-					realm.getUserSearchBase()));
-			realm.setUsersSearchPattern(this.settings.get(
-					"security.authorization.ldap.usersearchpattern",
-					realm.getUsersSearchPattern()));
-			realm.setGroupsSearchBase(this.settings.get(
-					"security.authorization.ldap.groupssearchbase",
-					realm.getGroupsSearchBase()));
-			realm.setGroupsSearchPattern(this.settings.get(
-					"security.authorization.ldap.groupssearchpattern",
-					realm.getGroupsSearchPattern()));
-			realm.setRoleNameAttribute(this.settings.get(
-					"security.authorization.ldap.rolenameattribute",
-					realm.getRoleNameAttribute()));
-
-			realm.setResourceName("active-directory");
-			realm.setLocalResource(true);
-			ctx.setRealm(realm);
-		}}
-	 */
-
 
 }

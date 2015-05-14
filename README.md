@@ -88,81 +88,81 @@ The security rules for each module are stored in an special index ``securityconf
 <b>Example: Configure 'Restrict actions against elasticsearch on IP-Address only basis (actionpathfilter)' module. 
 <pre><code>$ curl -XPUT 'http://localhost:9200/securityconfiguration/actionpathfilter/actionpathfilter' -d '
 {
-			 "rules": [
-			 	{
-				 	"permission" : "ALL"
-			 	},
-			 	
-			 	{
-				 	"hosts" : [ "google-public-dns-a.google.com" ],
-				 	"indices" : [ "*"],
-				 	"types" : [ "twitter","facebook" ],
-				 	"permission" : "NONE"
-			 	},
-			 	
-			 	{
-				 	"hosts" : [ "8.8.8.8" ],
-				 	"indices" : [ "testindex1","testindex2" ],
-				 	"types" : [ "*" ],
-				 	"permission" : "READWRITE"
-			 	},
-			 	
-			 	{
-				 	"hosts" : [ "81.*.8.*","2.44.12.14","*google.de","192.168.*.*" ],
-				 	"indices" : [ "testindex1" ],
-				 	"types" : [ "quotes" ],
-				 	"permission" : "READONLY"
-			 	}
-			 ]		 		 
+	 "rules": [
+	 	{
+		 	"permission" : "ALL"
+	 	},
+	 	
+	 	{
+		 	"hosts" : [ "google-public-dns-a.google.com" ],
+		 	"indices" : [ "*"],
+		 	"types" : [ "twitter","facebook" ],
+		 	"permission" : "NONE"
+	 	},
+	 	
+	 	{
+		 	"hosts" : [ "8.8.8.8" ],
+		 	"indices" : [ "testindex1","testindex2" ],
+		 	"types" : [ "*" ],
+		 	"permission" : "READWRITE"
+	 	},
+	 	
+	 	{
+		 	"hosts" : [ "81.*.8.*","2.44.12.14","*google.de","192.168.*.*" ],
+		 	"indices" : [ "testindex1" ],
+		 	"types" : [ "quotes" ],
+		 	"permission" : "READONLY"
+	 	}
+	 ]		 		 
 }'</code></pre>
 
 <b>Example: Configure 'Restrict actions against elasticsearch on user/role and ip/hostname basis (actionpathfilter)' module. This needs Token/JDBC based authentication.</b>
 <pre><code>$ curl -XPUT 'http://localhost:9200/securityconfiguration/actionpathfilter/actionpathfilter' -d '
 {
-			 "rules": [
-			 	{
-			 		
-				 	"users" : [ "*" ],
-				 	"roles" : [ "*" ],
-				 	"hosts" : [ "*" ],
-				 	"indices" : [ "*" ],
-				 	"types" : [ "*" ],
-				 	"permission" : "ALL"
-			 	},
-			 	
-			 	{
-			 		"users" : [ "spock","kirk" ],
-				 	"roles" : [ "admin" ],
-				 	"hosts" : [ "*" ],
-				 	"indices" : [ "*"],
-				 	"types" : [ "twitter","facebook" ],
-				 	"permission" : "NONE"
-			 	},
-			 	
-			 	{
-			 	
-			 		"users" : [ "bowna" ],
-				 	"roles" : [ "*" ],
-				 	"hosts" : [ "*" ],
-				 	"indices" : [ "testindex1","testindex2" ],
-				 	"types" : [ "*" ],
-				 	"permission" : "READWRITE"
-			 	},
-			 	
-			 	{
-			 		"users" : [ "smithf","salyh" ],
-				 	"roles" : [ "users","guests" ],
-				 	"hosts" : [ "81.*.8.*","2.44.12.14","*google.de","192.168.*.*" ],
-				 	"indices" : [ "testindex1" ],
-				 	"types" : [ "quotes" ],
-				 	"permission" : "READONLY"
-			 	}
-			 ]		 		 
+	 "rules": [
+	 	{
+	 		
+		 	"users" : [ "*" ],
+		 	"roles" : [ "*" ],
+		 	"hosts" : [ "*" ],
+		 	"indices" : [ "*" ],
+		 	"types" : [ "*" ],
+		 	"permission" : "ALL"
+	 	},
+	 	
+	 	{
+	 		"users" : [ "spock","kirk" ],
+		 	"roles" : [ "admin" ],
+		 	"hosts" : [ "*" ],
+		 	"indices" : [ "*"],
+		 	"types" : [ "twitter","facebook" ],
+		 	"permission" : "NONE"
+	 	},
+	 	
+	 	{
+	 	
+	 		"users" : [ "bowna" ],
+		 	"roles" : [ "*" ],
+		 	"hosts" : [ "*" ],
+		 	"indices" : [ "testindex1","testindex2" ],
+		 	"types" : [ "*" ],
+		 	"permission" : "READWRITE"
+	 	},
+	 	
+	 	{
+	 		"users" : [ "smithf","salyh" ],
+		 	"roles" : [ "users","guests" ],
+		 	"hosts" : [ "81.*.8.*","2.44.12.14","*google.de","192.168.*.*" ],
+		 	"indices" : [ "testindex1" ],
+		 	"types" : [ "quotes" ],
+		 	"permission" : "READONLY"
+	 	}
+	 ]		 		 
 }'</code></pre>
 
 
 ## Permissions:
-* **AL**L: No restrictions
+* **ALL**: No restrictions
 * **READWRITE**: No admin actions but read write operations allowed (for example _settings, _status, _cluster)
 * **READONLY**: No admin and no write actions allowed (but read actions) (for example _update, _bulk, _mapping)
 * **NONE**: No action allowed (also read actions will be denied) (even _search and _msearch are denied)
@@ -175,29 +175,23 @@ In a more formal way the configuration looks like:
 * The rules elemens look like:
 
 <pre><code>
-
-
-			 	{
-			 		"users" : [ &lt;* or list of users/principals for which this rule apply&gt; ],
-			 		"roles" : [ &lt;* or list of AD roles for which this rule apply&gt; ],
-				 	"hosts" : [ &lt;* or list of hostnames/ip's for which this rule apply&gt; ],
-				 	"types" :[ &lt;* or list of types for which this rule apply&gt; ],
-				 	"indices" :[ &lt;* or list of indices for which this rule apply&gt; ],
-				 	"permission" : "ALL"&#448;"READWRITE"&#448;"READONLY"&#448;"NONE";
-			 	}
-			 	
+ 	{
+ 		"users" : [ &lt;* or list of users/principals for which this rule apply&gt; ],
+ 		"roles" : [ &lt;* or list of AD roles for which this rule apply&gt; ],
+	 	"hosts" : [ &lt;* or list of hostnames/ip's for which this rule apply&gt; ],
+	 	"types" :[ &lt;* or list of types for which this rule apply&gt; ],
+	 	"indices" :[ &lt;* or list of indices for which this rule apply&gt; ],
+	 	"permission" : "ALL"&#448;"READWRITE"&#448;"READONLY"&#448;"NONE";
+ 	}
 </code></pre>
  
 * There must be exactly one default rule:
 
 <pre><code>
-
-
-			 	{
-				 	
-				 	"&lt;qualification name\>" : &lt;qualification string&gt;
-			 	}
-			 	
+ {
+ 	
+ 	"&lt;qualification name\>" : &lt;qualification string&gt;
+ }
 </code></pre>
 
 * If more than one rule match then the first one (right down at the top of the security config) is used

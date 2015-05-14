@@ -1,54 +1,17 @@
-# News/Status
-This plugin is no longer maintained, all effort goes into a new project called "Elastic Defender" https://github.com/salyh/elastic-defender
+# Elasticsearch Security Plugin for Token/JDBC based authentication
+This plugin is based on the implementation of <a href="mailto:hendrikdev22@gmail.com">E-Mail hendrikdev22@gmail.com</a><p>, who has done a great job of connecting elasticsearch to Kerberos/SPNEGO for authentication. I wanted to integrate the implementation into my Web Application based authentication, which relies on a standard user/group/role implementation for authentication.
 
-[![Defender Logo](http://saly.de/elastic-defender.jpg)](http://saly.de/elastic-defender.jpg)
+## Difference to Hendriks version
+* No support for Kerberos/SPNEGO, due to the fact they are not needed and would overload the plugin
+* No support for DSL specification for security definition
+* No support for Kibana, as it won't be used
 
-Elastic Defender will have most likely the following features:
-* Flexible access control (user/role based; on aliases, indices and types)
-* HTTP authentication (Basic, NTLM, SPNEGO/Kerberos, Client certificates, via HTTP proxy)
-* Flexible authentication backends (LDAP/AD, file based) 
-* Flexible authorization backends (LDAP/AD, file based) 
-* Node-to-node encryption through SSL/TLS
-* Secure rest layer through HTTPS
-* X-Forwarded-For (XFF) support
-* Audit logging
-* HTTP session support through cookies
-* No dependency to tomcat anymore, netty only
-
-Private beta is closed now.
-
-## elasticsearch-security-plugin (Unmaintained)
-[![Build Status](https://travis-ci.org/salyh/elasticsearch-security-plugin.png?branch=master)](https://travis-ci.org/salyh/elasticsearch-security-plugin)
-
-<a href="mailto:hendrikdev22@gmail.com">E-Mail hendrikdev22@gmail.com</a><p>
-<a href="https://twitter.com/hendrikdev22">Twitter @hendrikdev22</a>
-
-This plugin adds http/rest security functionality to Elasticsearch in kind of separate modules.
-Instead of Netty a embedded Tomcat 7 is used to process http/rest requests. 
-
-Currently for user based authentication and authorization Kerberos/SPNEGO and NTLM are supported through 3rd party library waffle (only on windows servers). 
-For UNIX servers Kerberos/SPNEGO is supported through tomcat build in SPNEGO Valve (Works with any Kerberos implementation. For authorization either Active Directory and generic LDAP is supported).
-PKI/SSL client certificate authentication is also supported (CLIENT-CERT method). SSL/TLS is also supported without client authentication.
-
-You can use this plugin also without Kerberos/NTLM/PKI but then only host based authentication is available.
-
-As of now two security modules are implemented:
-* Actionpathfilter: Restrict actions against Elasticsearch on a coarse-grained level like who is allowed to to READ, WRITE or even ADMIN rest api calls
-* Document level security (dls): Restrict actions on document level like who is allowed to query for which fields within a document
-
-<h3>Compatibility Matrix</h3> 
-| Operating System | Kerberos | LDAP  |
-| ------ | ------ | ------ |
-|  Windows  |  AD with waffle; MIT, Heimdal with tomcatspnego  |   AD, OpenLDAP, Domino, ...  |
-|  Non-Windows  |  MIT, Heimdal with tomcatspnego  |   AD, OpenLDAP, Domino, ...  |
-
+* Support for Token and JDBC based authentication
+* Migration from Elastic search security storage to MapDB in future, due to performance impacts for large security definitions
+* Added integration with elastic search test runner https://github.com/codelibs/elasticsearch-cluster-runner
 
 <h3>Installation</h3> 
-(Until the first release is out you have to build this plugin yourself with maven or download from the github release page and install manually)
-
-Branches:
-* master for Elasticsearch 1.2.0 - 1.4.x
-* ea0.9 for Elasticsearch 0.90.10 - 0.90.x
+To install the plugin it must be build with maven. Read below, how to build the plugin.
 
 Prerequisites:
 * Open JDK 7 or Oracle 7 JRE
@@ -60,10 +23,10 @@ Build yourself:
 * execute ``mvn clean package -DskipTests=true`` 
 
 Windows:
-``plugin.bat --url http://... --install elasticsearch-security-plugin-0.0.1.Beta2``
+``plugin.bat --url http://... --install elasticsearch-security-jdbc-token-plugin-0.0.1.Beta2``
 
 UNIX:
-``plugin --url http://... --install elasticsearch-security-plugin-0.0.2.Beta2``
+``plugin --url http://... --install elasticsearch-security-jdbc-token-plugin-0.0.2.Beta2``
 
 
 
@@ -76,24 +39,22 @@ Enable the security plugin
 * ``script.disable_dynamic: true`` Dynamic scripts are unsafe and can potentially tamper this plugin (not needed for ES 1.2 and above)
 * ``http.port: 9200`` Define exactly one port, Port ranges are not permitted
 
-Setup Kerberos
-* ``security.kerberos.mode: waffle|spnegoad|none`` Kerberos implementation (spnegoad is tomcat-built in Kerberos/SPNEGO support)
-
-If you use spnegoad then you must provide the following configuration parameters:
-* ``security.authorization.ldap.ldapurls: ldap://myldaphost:389`` Ldap Servers (you can configure a fallback by adding a comma separated second ldap url. This would then be used as tomcats alternateURL)
-* ``security.kerberos.login.conf.path: c:\path\to\login.conf`` JAAS login modules configuration
-* ``security.kerberos.krb5.conf.path: /path/to/krb5.conf`` Kerberos configuration file
-* ``security.authorization.ldap.connectionname: uid=admin,ou=system`` Low priv login to ldap server (Omit for anonymous authentication).
-* ``security.authorization.ldap.connectionpassword: secret`` Password for low priv login to ldap server (Omit for anonymous authentication). No encryption here, this is plaintext!
+Setup Token based Authentication
+* ``security.authentication.mode: jdbc`` JDBC/Http Token based authentication
 
 If you use spnegoad and not Active Directory you may want configure your LDAP layout
 (look here for details: http://tomcat.apache.org/tomcat-7.0-doc/realm-howto.html#JNDIRealm)
-* ``security.authorization.ldap.userbase: ""`` (Default is Root DSE)
-* ``security.authorization.ldap.usersearch: (sAMAccountName={0})`` Default is (sAMAccountName={0})
-* ``security.authorization.ldap.rolebase: ""`` (Default is Root DSE)
-* ``security.authorization.ldap.rolesearch: (member={0})`` Default is (member={0})
-* ``security.authorization.ldap.rolename: cn`` (Default is cn)
-
+* ``security.jdbc.url: ""`` (e.g. postgres:jdbc)
+* ``security.jdbc.driver: ""`` (e.g. org.postgresql.Driver)
+* ``security.jdbc.host: ""`` (e.g. 172.16.248.128)
+* ``security.jdbc.port: ""`` (e.g. 5432)
+* ``security.jdbc.username: ""`` (e.g. User12)
+* ``security.jdbc.password: ""`` (e.g. Password132)
+* ``security.jdbc.database: ""`` (e.g. myDb)
+* ``security.jdbc.table: ""`` (e.g. user)
+* ``security.jdbc.column.username: ""`` (e.g. email)
+* ``security.jdbc.column.password: ""`` (e.g. password)
+* 
 Optionally enable SSL/TLS
 * ``security.ssl.enabled: true`` Enable SSL
 * ``security.ssl.keystorefile: /path/to/keystore`` Keystore for private and public server certificates
@@ -121,8 +82,7 @@ Enable strict mode if really needed (disabled by default, enable only if you kno
 
 
 <h4>Configuration (security rules)</h4>
-The security rules for each module are stored in an special index ``securityconfiguration``.
-For security reasons you can access this index only from localhost (127.0.0.1).
+The security rules for each module are stored in an special index ``securityconfiguration``. For security reasons you can access this index only from localhost (127.0.0.1). For performance and security reasons this will be changed to MapDB in future releases. 
 
 <b>Example: Configure 'Restrict actions against elasticsearch on IP-Address only basis (actionpathfilter)' module. This work's without Kerberos/NTLM but maybe require XFF to be configured properly.</b>
 <pre><code>$ curl -XPUT 'http://localhost:9200/securityconfiguration/actionpathfilter/actionpathfilter' -d '
@@ -242,168 +202,6 @@ In a more formal way the configuration looks like:
 
 * If more than one rule match then the first one (right down at the top of the security config) is used
 
-
-<b>Example: Configure 'Limit fields which will be returned on IP-Address basis (document level security)' module</b>
-This work a little bit different then the actionpathfilter. First you have to configure a default for all documents which do not contain document level security informations. 
-<pre><code>$ curl -XPUT 'http://localhost:9200/securityconfiguration/dlspermissions/default' -d '
-{
-			 "dlspermissions":
-				{
-					"*" : 
-									{
-										"read" :["dlstoken1","t_powerusers","t_office","t_admin"],
-										"update" : ["t_office","t_admin"],
-										"delete" : []
-									}
-					
-													
-				}				 
-}'</code></pre>
-The above means that every field ("*") in a document which has document level security associated can be read by those who have obtained one of the listed dls tokens (in this example: "dlstoken1","t_powerusers","t_office","t_admin"),
-every field can be updated by those with the tokens "t_office","t_admin" and every field can be deleted by no one (empty token array).
-
-Another example could be:
-<pre><code>$ curl -XPUT 'http://localhost:9200/securityconfiguration/dlspermissions/default' -d '
-{
-			 "dlspermissions":
-				{
-					"*" : 
-									{
-										"read" :["t_admin"],
-										"update" : [],
-										"delete" : []
-									},
-									
-					"qoutes.account.*" : 
-									{
-										"read" :["t_office","t_admin"],
-										"update" : ["t_office","t_admin"],
-										"delete" : []
-									},
-									
-					"customers.*" : 
-									{
-										"read" :["*"],
-										"update" : ["*"],
-										"delete" : ["*"]
-									}
-					
-													
-				}				 
-}'</code></pre>
-The above means that every field ("*") in a document which has document level security associated can be read by those who have obtained the "t_admin" token. Updates and deletes are not permitted.
-All fields matching "qoutes.account.*" can be read and updated by those who have obtained the "t_office" or "t_admin" token.
-All fields matching "customers.*" can be read, updated and deleted by any one.
-
-If a document contains document level security information those will be applied instead of the default. An example for such a document could be:
-<pre><code>$ curl -XPUT 'http://localhost:9200/finacial/qoutes/Id-12345' -d '
-{
-
-			"company" : "Hewlett Packard",
-			"street" : "Packard Bell Road 1",
-			"zip" : "12345",
-			
-			
-			"customers":{
-							"Apple":{
-										"street" : "infinite loop"
-									},
-									
-							"Microsoft":{
-										"street" : "One Microsoft Way"
-									}
-			
-						}
-			
-			
-			"qoutes": {
-						"quoteid" : "QO-7776-U",
-						"amount" : 300000,
-						"account" : {
-										"name" : "Demo Ltd.",
-										"classification" : "A",
-										"tickersymbol" : "AAOL"
-									}
-					}	
-
-
-
-			 "dlspermissions":
-				{
-					"*" : 
-									{
-										"read" :["t_admin"],
-										"update" : [],
-										"delete" : []
-									},
-									
-					"qoutes.account.*" : 
-									{
-										"read" :["t_office","t_admin"],
-										"update" : ["t_office","t_admin"],
-										"delete" : []
-									},
-									
-					"customers.*" : 
-									{
-										"read" :["*"],
-										"update" : ["*"],
-										"delete" : ["*"]
-									}
-					
-													
-				}
-				
-				
-				
-							 
-}'</code></pre>
-
-How to obtain a dls (document level security) token? It works very similar to the actionpathfilter:
-<pre><code>$ curl -XPUT 'http://localhost:9200/securityconfiguration/dlspermissions/dlspermissions' -d '
-{
-			 "rules": [
-			 	{
-			 		
-				 	"users" : [ "*" ],
-				 	"roles" : [ "*" ],
-				 	"hosts" : [ "*" ],
-				 	"indices" : [ "*" ],
-				 	"types" : [ "*" ],
-				 	"dlstoken" : [ ]
-			 	},
-			 	
-			 	{
-			 		"users" : [ "spock","kirk" ],
-				 	"roles" : [ "admin" ],
-				 	"hosts" : [ "*" ],
-				 	"indices" : [ "*"],
-				 	"types" : [ "twitter","facebook" ],
-				 	"dlstoken" : [ "t_office","t_admin" ]
-			 	},
-			 	
-			 	{
-			 	
-			 		"users" : [ "bowna" ],
-				 	"roles" : [ "*" ],
-				 	"hosts" : [ "*" ],
-				 	"indices" : [ "testindex1","testindex2" ],
-				 	"types" : [ "*" ],
-				 	"dlstoken" : [ "t_office","t_admin" ]
-			 	},
-			 	
-			 	{
-			 		"users" : [ "smithf","salyh" ],
-				 	"roles" : [ "users","guests" ],
-				 	"hosts" : [ "81.*.8.*","2.44.12.14","*google.de","192.168.*.*" ],
-				 	"indices" : [ "testindex1" ],
-				 	"types" : [ "quotes" ],
-				 	"dlstoken" : [ "t_office","t_admin" ]
-			 	}
-			 ]		 		 
-}'</code></pre>
-
-
 Who i am:<br>
 "users" : [...], if * or not present match always, if empty match always, OR<br>
 "roles" : [...], if * or not present match always, if empty match always, OR<br>
@@ -430,66 +228,7 @@ and (issues the request from host1 or host2) and (operates on i1 or i2 or both)<
 and uses (documents of types t1 or t2 or both)<br>
 
 
-
-<h3>elasticsearch-security-plugin for Kibana</h3>
-
-Ram Kotamaraja provided some enhancements to make the plugin work with Kibana 3.
-For details see https://github.com/rkotamaraja/elasticsearch-security-plugin/commits/master and https://github.com/salyh/elasticsearch-security-plugin/pull/5 
-Here is the documentation for this:
-
-Added a new security index to provide security around kibana 3.0.0 fifth milestone. Kibana uses a generic search query such as http://elasticsearchhost:9200/testindex1/_search. To provide security around queries like that, the plugin is modified to support additional kibana configuration. Configuration is as follows. 
-
-<pre><code>
-PUT /securityconfiguration/actionpathfilter/kibana
-{
-             "rules": [
-                {
-                    "index" : "testindex1",
-                    "types" : [ "testtype1", "testtype5", "testtype13", "testtype7"]
-                },
-                {
-                    "index" : "testindex2",
-                    "types" : [ "testtype19", "testtype21" ]
-                },
-                {
-                    "index" : "testdata",
-                    "types" : [ ""testtype1", "testtype2" ]
-                }
-	     ]
-}
-
-</code></pre>
-
-This configuration allows users to specify which types in a given index are accessible by users. 
-
-<h3>Contributers</h3>
-* Ram Kotamaraja (https://github.com/rkotamaraja)
-
-<p>
-<p>
-TODO<br>
-* http://tomcat.apache.org/tomcat-7.0-doc/api/org/apache/catalina/valves/RemoteIpValve.html
-* Check restict highlighting http://www.elasticsearch.org/guide/en/elasticsearch/reference/current/search-request-highlighting.html
-* Enforce script.disable_dynamic: true
-* Check restrict bulk requests and responses
-* Add "at least authenticated" user rule
-* Provide rest api endpoint for displaying current security rules/status
-
 <h3>License</h3>
-Copyright 2013-2014 Hendrik Saly
-
-Unless required by applicable law or agreed to in writing, Licensor provides the Work (and each Contributor provides its Contributions) 
-on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied, including, without limitation, any warranties or 
-conditions of TITLE, NON-INFRINGEMENT, MERCHANTABILITY, or FITNESS FOR A PARTICULAR PURPOSE. You are solely responsible for determining the 
-appropriateness of using or redistributing the Work and assume any risks associated with Your exercise of permissions under this License.
-
-Limitation of Liability. In no event and under no legal theory, whether in tort (including negligence), contract, or otherwise, unless 
-required by applicable law (such as deliberate and grossly negligent acts) or agreed to in writing, shall any Contributor be liable to 
-You for damages, including any direct, indirect, special, incidental, or consequential damages of any character arising as a result of 
-this License or out of the use or inability to use the Work (including but not limited to damages for loss of goodwill, work stoppage, 
-computer failure or malfunction, or any and all other commercial damages or losses), even if such Contributor has been advised of the 
-possibility of such damages.
-
 Licensed under the "No License" license (github default): 
 http://choosealicense.com/licenses/no-license/
 
